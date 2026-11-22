@@ -37,6 +37,8 @@ class Core:
         # (service, item_id) pairs we have already logged as failed, so a file
         # that keeps failing does not spam the activity log every poll.
         self._failed_logged: set[tuple[str, str]] = set()
+        # scan-inbox: last seen size per filename, to detect a finished write.
+        self._inbox_seen: dict[str, int] = {}
         self._build_providers()
         self._apply_folder_overrides()
 
@@ -179,6 +181,7 @@ class Core:
             return 0
         now = time.time()
         count = 0
+        current: set[str] = set()
         for f in sorted(inbox.iterdir()):
             if not f.is_file() or f.name.startswith(".") or f.name.startswith("_"):
                 continue
@@ -186,10 +189,16 @@ class Core:
                 stat = f.stat()
             except OSError:
                 continue
-            if now - stat.st_mtime < cfg.min_age_seconds:
-                continue  # still being written
+            current.add(f.name)
+            size = stat.st_size
+            # Only process once the file is finished: old enough AND the same
+            # size as the previous poll. A scanner writes the PDF trailer last,
+            # so grabbing it mid-write yields a truncated, unreadable file.
+            if now - stat.st_mtime < cfg.min_age_seconds or self._inbox_seen.get(f.name) != size:
+                self._inbox_seen[f.name] = size
+                continue
             activity_id = self.log.record("scan", f.name, service=cfg.service,
-                                          status="pending", size_bytes=stat.st_size)
+                                          status="pending", size_bytes=size)
             try:
                 data = f.read_bytes()
                 data, upload_name = self._prepare_upload(data, f.name)
@@ -202,12 +211,17 @@ class Core:
                     f.rename(failed / f.name)
                 except OSError:
                     pass
+                self._inbox_seen.pop(f.name, None)
                 continue
             self.log.set_filename(activity_id, upload_name)
             self.log.set_size(activity_id, len(data))
             self.log.update_status(activity_id, "success")
             f.unlink(missing_ok=True)
+            self._inbox_seen.pop(f.name, None)
             count += 1
+        # Forget files that have disappeared so the map does not grow forever.
+        for name in [n for n in self._inbox_seen if n not in current]:
+            self._inbox_seen.pop(name, None)
         return count
 
     # --- Cloud -> Print ----------------------------------------------------
