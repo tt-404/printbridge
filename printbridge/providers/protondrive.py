@@ -50,7 +50,12 @@ def _is_folder(it: dict) -> bool:
 
 
 def _name_of(it: dict) -> str | None:
-    name = it.get("name") or it.get("filename") or it.get("path")
+    name = it.get("name")
+    # Proton wraps field values as {"ok": true, "value": "<name>"}.
+    if isinstance(name, dict):
+        name = name.get("value")
+    if not name:
+        name = it.get("filename") or it.get("path")
     return str(name).rstrip("/").split("/")[-1] if name else None
 
 

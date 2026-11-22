@@ -5,7 +5,7 @@ of the exact (undocumented) wrapper shape — so Cloud->Print never tries to
 """
 import json
 
-from printbridge.providers.protondrive import _parse_list_json
+from printbridge.providers.protondrive import _parse_folders_json, _parse_list_json
 
 
 def test_parses_flat_list_and_skips_folders():
@@ -32,3 +32,20 @@ def test_isfolder_flag_variant_is_respected():
     ])
     files = _parse_list_json(out, "/x")
     assert [f.name for f in files] == ["d.pdf"]
+
+
+def test_real_proton_schema_wraps_name_value():
+    """Regression: Proton's `filesystem list --json` wraps names as
+    {"ok": true, "value": "X"}. Taking the dict verbatim produced a garbage
+    folder name/path and broke uploads — names must be unwrapped.
+    """
+    out = json.dumps([
+        {"name": {"ok": True, "value": "scan.pdf"}, "type": "file"},
+        {"name": {"ok": True, "value": "ToPrint"}, "type": "folder"},
+    ])
+    files = _parse_list_json(out, "/my-files/PrintBridge")
+    assert [f.name for f in files] == ["scan.pdf"]
+    assert files[0].id == "/my-files/PrintBridge/scan.pdf"
+    folders = _parse_folders_json(out, "/my-files/PrintBridge")
+    assert [f.name for f in folders] == ["ToPrint"]
+    assert folders[0].path == "/my-files/PrintBridge/ToPrint"
