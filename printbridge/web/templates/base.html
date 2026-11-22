@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  {% set _p = request.url.path %}
   <header>
     <a class="brand" href="/">PrintBridge</a>
     <nav>
-      <a href="/">Übersicht</a>
-      <a href="/services">Dienste</a>
-      <a href="/activity">Protokoll</a>
+      <a href="/" class="{{ 'active' if _p == '/' }}">Übersicht</a>
+      <a href="/services" class="{{ 'active' if _p.startswith('/services') }}">Dienste</a>
+      <a href="/activity" class="{{ 'active' if _p.startswith('/activity') }}">Protokoll</a>
     </nav>
   </header>
   <main>
