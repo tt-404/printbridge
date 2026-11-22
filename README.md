@@ -25,8 +25,10 @@ SANE, CUPS, or any tool other than PrintBridge itself.
   `2026-04-03_Rechnung_Swisscom.pdf`); `letter` (offline heuristic for business
   letters — `<recipient first name>_<sender>_<date>`, e.g.
   `Anna_Swisscom_2026-03-15.pdf`, no key, no model); or `llm`, which asks Claude
-  to extract the same more robustly (needs `ANTHROPIC_API_KEY`; set `ocr.model`,
-  `claude-haiku-5-5` is cheap). Any failure falls back to the rule-based name.
+  to extract the same more robustly (optional — `pip install -e ".[llm]"` and an
+  `ANTHROPIC_API_KEY`; set `ocr.model`, `claude-haiku-5-5` is cheap). Any failure
+  falls back to the rule-based name. **`rules` and `letter` are fully local — no
+  AI, no key, no network; the AI SDK is only needed for `llm`.**
 - **Protocol:** every scan and print is logged — what, when, to/from which
   service, success or failure — and shown in the UI.
 

@@ -13,11 +13,13 @@ dependencies = [
     "pyyaml>=6.0",
     "python-multipart>=0.0.9",
     "zeroconf>=0.130",
-    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+# Only for ocr.naming = "llm" (optional). The default "letter" naming is fully
+# local and needs none of this.
+llm = ["anthropic>=0.40"]
 
 [project.scripts]
 printbridge = "printbridge.__main__:main"
