@@ -78,24 +78,39 @@ Then click **Verbinden**. PrintBridge shows a short code; enter it once at
 then on everything is in the UI. No client secret is ever stored, which is why
 this is safe to self-host from a public repo.
 
-### Proton Drive — not available yet (on purpose)
+### Proton Drive (experimental, via the official CLI)
 
-Proton Drive has **no official public API**. The only way to reach it today is
-through an unofficial, reverse-engineered, end-to-end-encrypted protocol (the
-approach `rclone` takes). That is fragile, breaks when Proton changes its apps,
-and sits in a terms-of-service grey area.
+Proton Drive is supported through Proton's **official `proton-drive` CLI**
+(a single binary for Windows/macOS/Linux). It is the one external tool
+PrintBridge relies on, and only for Proton.
 
-Rather than ship code that silently fails, PrintBridge lists Proton Drive but
-marks it **experimental / unavailable** and refuses uploads with a clear
-message. If a maintained, reliable client is adopted, implement the four methods
-in `printbridge/providers/protondrive.py`.
+1. Download the `proton-drive` binary from Proton's Drive download page and put
+   it on `PATH` (`chmod +x proton-drive` on macOS/Linux). Confirm with
+   `proton-drive version`.
+2. Run **`proton-drive auth login` once in a terminal** on the Pi. Login happens
+   in the browser; the session is stored in the OS keychain. PrintBridge never
+   sees your Proton password.
+3. In the web UI → **Dienste**, click **Verbinden** on Proton Drive. PrintBridge
+   checks that the CLI is logged in; once it is, the status turns *linked*.
+
+Scans upload to `upload_folder`; files dropped in `print_folder` are auto-printed
+(if auto-print is on), the same as OneDrive.
+
+It is marked **experimental** because it depends on an external binary, is new,
+and one detail is unverified here: the JSON shape of `filesystem list --json`
+(used for Cloud → Print) is parsed tolerantly in
+`printbridge/providers/protondrive.py` — if your CLI lists files differently,
+adjust `_parse_list_json`. Uploads use fully documented commands. Proton's
+fair-use rate limits apply.
 
 ## Adding a cloud service (community extensions)
 
 The web UI only ever talks to the `Provider` interface, so a new service is:
 
 1. Subclass the provider protocol (see `providers/base.py`).
-2. Implement `status`, `begin_link`, `poll_link`, `unlink`, `upload`.
+2. Implement `status`, `begin_link`, `poll_link`, `unlink`, `upload`. For
+   Cloud → Print support, set `supports_incoming = True` and implement
+   `list_incoming` + `download` (otherwise set it to `False`).
 3. Decorate your factory with `@register("yourservice")`.
 4. Import it in `providers/__init__.py`.
 

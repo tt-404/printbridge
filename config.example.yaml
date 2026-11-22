@@ -38,4 +38,8 @@ services:
     print_folder: "/PrintBridge/ToPrint"
   protondrive:
     enabled: false
-    # Experimental: Proton Drive has no official public API. See README.
+    # Uses Proton's official `proton-drive` CLI as a subprocess. Install it and
+    # run `proton-drive auth login` once; see README. Experimental.
+    binary: "proton-drive"           # path or name on PATH
+    upload_folder: "/my-files/PrintBridge"
+    print_folder: "/my-files/PrintBridge/ToPrint"

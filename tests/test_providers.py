@@ -21,12 +21,16 @@ def test_onedrive_without_client_id_is_unlinked_not_crashing():
     assert "client_id" in st.message
 
 
-def test_protondrive_is_honestly_unavailable():
-    """Proton has no official API; the provider must say so, not fake success."""
+def test_protondrive_unavailable_without_cli(monkeypatch):
+    """Without the proton-drive CLI installed, the provider must report
+    UNAVAILABLE and refuse to upload — never silently pretend to work.
+    """
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda _: None)
     p = providers.create("protondrive")
     assert p.status().state is LinkState.UNAVAILABLE
     assert p.experimental is True
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(RuntimeError):
         p.upload("x.pdf", b"data")
 
 
