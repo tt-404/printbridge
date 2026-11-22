@@ -112,7 +112,8 @@ def create_app(config: Config | None = None) -> FastAPI:
     @app.get("/services")
     async def services(request: Request):
         items = [(key, p, p.status()) for key, p in core.providers.items()]
-        return templates.TemplateResponse(request, "services.html", ctx(items=items))
+        return templates.TemplateResponse(request, "services.html",
+                                          ctx(items=items, config_errors=core.last_config_error))
 
     @app.get("/services/{key}")
     async def service_detail(request: Request, key: str, path: str | None = None):
@@ -154,7 +155,11 @@ def create_app(config: Config | None = None) -> FastAPI:
         if fields and hasattr(p, "configure"):
             form = await request.form()
             values = {f["name"]: str(form.get(f["name"], "")) for f in fields}
-            await run_in_threadpool(lambda: p.configure(**values))
+            st = await run_in_threadpool(lambda: p.configure(**values))
+            if st.state.value == "linked":
+                core.last_config_error.pop(key, None)
+            else:
+                core.last_config_error[key] = st.message
         return RedirectResponse("/services", status_code=303)
 
     @app.post("/services/{key}/poll")

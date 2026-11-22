@@ -42,10 +42,10 @@ def discover(timeout: float = 3.0) -> list[Device]:
 
     found: dict[str, Device] = {}
 
-    def on_change(zc: "Zeroconf", service_type: str, name: str, state_change) -> None:
+    def on_change(zeroconf: "Zeroconf", service_type: str, name: str, state_change) -> None:
         if state_change is not ServiceStateChange.Added:
             return
-        info = zc.get_service_info(service_type, name, timeout=2000)
+        info = zeroconf.get_service_info(service_type, name, timeout=2000)
         if not info:
             return
         addrs = [a for a in info.parsed_addresses() if ":" not in a] or info.parsed_addresses()

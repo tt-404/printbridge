@@ -23,6 +23,7 @@
       <form method="post" action="/services/{{ key }}/poll"><button>Status prüfen</button></form>
     </div>
     {% elif st.state.value == "unlinked" and p.credential_fields %}
+    {% if config_errors.get(key) %}<p class="status status-error">{{ config_errors[key] }}</p>{% endif %}
     <form method="post" action="/services/{{ key }}/configure" class="credform">
       {% for f in p.credential_fields %}
       <div class="field">

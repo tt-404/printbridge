@@ -39,6 +39,8 @@ class Core:
         self._failed_logged: set[tuple[str, str]] = set()
         # scan-inbox: last seen size per filename, to detect a finished write.
         self._inbox_seen: dict[str, int] = {}
+        # last failed-configure message per provider, surfaced in the UI.
+        self.last_config_error: dict[str, str] = {}
         self._build_providers()
         self._apply_folder_overrides()
 
