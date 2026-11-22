@@ -10,15 +10,17 @@ from printbridge.providers.base import LinkState
 
 def test_builtin_providers_are_registered():
     keys = providers.available_keys()
-    assert "onedrive" in keys
+    assert "webdav" in keys
     assert "protondrive" in keys
+    # OneDrive is deliberately not registered (Azure app registration friction).
+    assert "onedrive" not in keys
 
 
-def test_onedrive_without_client_id_is_unlinked_not_crashing():
-    p = providers.create("onedrive")
-    st = p.status()
-    assert st.state is LinkState.UNLINKED
-    assert "client_id" in st.message
+def test_webdav_unconfigured_is_unlinked(tmp_path, monkeypatch):
+    monkeypatch.setenv("PRINTBRIDGE_DATA_DIR", str(tmp_path))
+    p = providers.create("webdav")
+    assert p.status().state is LinkState.UNLINKED
+    assert p.credential_fields  # UI renders a form from these
 
 
 def test_protondrive_unavailable_without_cli(monkeypatch):

@@ -147,6 +147,16 @@ def create_app(config: Config | None = None) -> FastAPI:
         await run_in_threadpool(core.provider(key).begin_link)
         return RedirectResponse("/services", status_code=303)
 
+    @app.post("/services/{key}/configure")
+    async def configure(request: Request, key: str):
+        p = core.provider(key)
+        fields = getattr(p, "credential_fields", None)
+        if fields and hasattr(p, "configure"):
+            form = await request.form()
+            values = {f["name"]: str(form.get(f["name"], "")) for f in fields}
+            await run_in_threadpool(lambda: p.configure(**values))
+        return RedirectResponse("/services", status_code=303)
+
     @app.post("/services/{key}/poll")
     async def poll(key: str):
         await run_in_threadpool(core.provider(key).poll_link)

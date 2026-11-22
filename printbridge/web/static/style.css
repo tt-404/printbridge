@@ -176,6 +176,7 @@ tbody tr:hover { background: var(--surface-2); }
   border: 1px solid rgba(229, 160, 13, 0.35);
   text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
 }
+.credform { margin-top: 0.6rem; max-width: 420px; }
 .devicecode .code {
   font-size: 1.7rem; font-weight: 800; letter-spacing: 0.12em;
   font-family: ui-monospace, Menlo, monospace; color: var(--accent);

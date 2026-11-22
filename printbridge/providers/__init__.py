@@ -11,5 +11,8 @@ from .base import (  # noqa: F401
 )
 
 # Importing each module runs its @register decorator.
-from . import onedrive  # noqa: F401,E402
+# OneDrive is intentionally not registered: Microsoft requires an Azure app
+# registration, which is too much friction for the home users this targets.
+# The implementation stays in onedrive.py for reference.
+from . import webdav  # noqa: F401,E402
 from . import protondrive  # noqa: F401,E402

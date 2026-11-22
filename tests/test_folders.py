@@ -21,10 +21,9 @@ def test_parent_folder_proton_nonempty_root():
 
 def test_chosen_folder_persists_across_restart(tmp_path, monkeypatch):
     monkeypatch.setenv("PRINTBRIDGE_DATA_DIR", str(tmp_path))
-    cfg = Config(database=str(tmp_path / "t.db"),
-                 services={"onedrive": {"client_id": "abc"}})
+    cfg = Config(database=str(tmp_path / "t.db"))
     core = Core(cfg)
-    core.set_folder("onedrive", "upload", "/Invoices")
-    assert core.provider("onedrive").upload_folder == "/Invoices"
+    core.set_folder("webdav", "upload", "/Invoices")
+    assert core.provider("webdav").upload_folder == "/Invoices"
     # A fresh Core on the same DB applies the stored choice.
-    assert Core(cfg).provider("onedrive").upload_folder == "/Invoices"
+    assert Core(cfg).provider("webdav").upload_folder == "/Invoices"

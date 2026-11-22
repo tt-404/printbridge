@@ -43,14 +43,11 @@ database: "printbridge.db"
 # Cloud services. Secrets entered via the web UI are stored in the data
 # directory, NOT here. This file only holds non-secret, declarative settings.
 services:
-  onedrive:
+  webdav:
     enabled: false
-    # Microsoft Graph application (client) ID from your Azure app registration.
-    # Required because Microsoft does not allow a shared public client secret.
-    client_id: ""
-    # Folder inside OneDrive where scans are uploaded.
+    # Server URL, username and app-password are entered in the web UI
+    # (works with Nextcloud, ownCloud, many NAS, mailbox.org, ...).
     upload_folder: "/PrintBridge"
-    # Folder watched for Cloud -> Print: files dropped here get printed.
     print_folder: "/PrintBridge/ToPrint"
   protondrive:
     enabled: false

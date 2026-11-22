@@ -22,6 +22,17 @@
       <p class="code">{{ st.user_code }}</p>
       <form method="post" action="/services/{{ key }}/poll"><button>Status prüfen</button></form>
     </div>
+    {% elif st.state.value == "unlinked" and p.credential_fields %}
+    <form method="post" action="/services/{{ key }}/configure" class="credform">
+      {% for f in p.credential_fields %}
+      <div class="field">
+        <label for="{{ key }}-{{ f.name }}">{{ f.label }}</label>
+        <input id="{{ key }}-{{ f.name }}" name="{{ f.name }}" type="{{ f.type or 'text' }}"
+               placeholder="{{ f.placeholder or '' }}" {{ 'required' if f.name != 'url' }}>
+      </div>
+      {% endfor %}
+      <button>Verbinden</button>
+    </form>
     {% elif st.state.value == "unlinked" %}
     <form method="post" action="/services/{{ key }}/link"><button>Verbinden</button></form>
     {% elif st.state.value == "linked" %}

@@ -66,24 +66,27 @@ To run it as a service, adapt and install `systemd/printbridge.service`.
 
 Open the web UI → **Dienste** (Services).
 
-### OneDrive
+### WebDAV / Nextcloud (recommended)
 
-OneDrive works through Microsoft Graph. Microsoft does **not** allow a shared
-public client secret, so each deployment needs its own **free** app
-registration (one-time, ~2 minutes):
+The easiest home-user cloud — no developer app registration, just a URL and an
+app-password. Works with Nextcloud, ownCloud, many NAS (Synology/QNAP),
+mailbox.org and anything else that speaks WebDAV.
 
-1. Go to the [Azure Portal → App registrations](https://portal.azure.com/) →
-   *New registration*.
-2. Supported account types: *Personal Microsoft accounts* (or include work/school).
-3. Under *Authentication* → *Advanced settings*, enable
-   **Allow public client flows** = Yes.
-4. Copy the **Application (client) ID** into `config.yaml` →
-   `services.onedrive.client_id` (or paste it in the UI).
+In the web UI → **Dienste**, fill in the WebDAV form:
 
-Then click **Verbinden**. PrintBridge shows a short code; enter it once at
-[microsoft.com/devicelogin](https://microsoft.com/devicelogin). Done — from
-then on everything is in the UI. No client secret is ever stored, which is why
-this is safe to self-host from a public repo.
+1. **Server-URL:** your WebDAV root. For Nextcloud this is
+   `https://YOURSERVER/remote.php/dav/files/USERNAME/`.
+2. **Benutzername:** your account name.
+3. **App-Passwort:** create one in Nextcloud under *Settings → Security →
+   App passwords* (don't use your main password).
+
+Click **Verbinden** — PrintBridge checks the connection and stores the
+app-password locally (chmod 600). Then pick target folders under *Ordner wählen*.
+
+> OneDrive and Google Drive are intentionally not built in: both require a
+> developer OAuth app registration (Azure / Google Cloud), which is too much
+> friction for this project's home-user audience. The OneDrive implementation
+> remains in `providers/onedrive.py` (unregistered) for reference.
 
 ### Proton Drive (experimental, via the official CLI)
 
