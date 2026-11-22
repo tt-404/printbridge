@@ -27,10 +27,19 @@ class ProviderStatus:
     verification_url: str | None = None
 
 
+@dataclass
+class IncomingFile:
+    """A file waiting in a cloud folder to be printed."""
+    id: str
+    name: str
+
+
 class Provider(Protocol):
     key: str          # stable identifier, e.g. "onedrive"
     label: str        # human name shown in the UI
     experimental: bool
+    # True if this provider can be watched for files to auto-print (Cloud -> Print).
+    supports_incoming: bool
 
     def status(self) -> ProviderStatus: ...
 
@@ -48,6 +57,18 @@ class Provider(Protocol):
 
     def upload(self, filename: str, data: bytes) -> None:
         """Upload one file. Raises on failure."""
+        ...
+
+    def list_incoming(self) -> list[IncomingFile]:
+        """List files in the watched print folder (Cloud -> Print).
+
+        Providers without this capability (supports_incoming == False) raise
+        NotImplementedError.
+        """
+        ...
+
+    def download(self, file_id: str) -> bytes:
+        """Download one incoming file's bytes. Raises on failure."""
         ...
 
 

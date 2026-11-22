@@ -13,6 +13,13 @@ web:
   host: "0.0.0.0"
   port: 8080
 
+# Cloud -> Print: PrintBridge watches a cloud folder and prints new files.
+# The on/off switch is toggled in the web UI; this is only the default and the
+# polling interval.
+autoprint:
+  enabled: false
+  interval_seconds: 60
+
 # Local SQLite database for the activity log. Relative paths are resolved
 # against the data directory (default: ~/.local/share/printbridge).
 database: "printbridge.db"
@@ -27,6 +34,8 @@ services:
     client_id: ""
     # Folder inside OneDrive where scans are uploaded.
     upload_folder: "/PrintBridge"
+    # Folder watched for Cloud -> Print: files dropped here get printed.
+    print_folder: "/PrintBridge/ToPrint"
   protondrive:
     enabled: false
     # Experimental: Proton Drive has no official public API. See README.

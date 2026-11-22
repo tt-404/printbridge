@@ -28,6 +28,7 @@ class ProtonDriveProvider:
     key = "protondrive"
     label = "Proton Drive"
     experimental = True
+    supports_incoming = False
 
     def status(self) -> ProviderStatus:
         return ProviderStatus(LinkState.UNAVAILABLE, _REASON)
@@ -42,6 +43,12 @@ class ProtonDriveProvider:
         return None
 
     def upload(self, filename: str, data: bytes) -> None:
+        raise NotImplementedError(_REASON)
+
+    def list_incoming(self):
+        raise NotImplementedError(_REASON)
+
+    def download(self, file_id: str) -> bytes:
         raise NotImplementedError(_REASON)
 
 

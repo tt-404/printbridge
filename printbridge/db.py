@@ -28,6 +28,20 @@ CREATE TABLE IF NOT EXISTS activity (
     detail      TEXT                           -- error message or extra info
 );
 CREATE INDEX IF NOT EXISTS idx_activity_ts ON activity(ts DESC);
+
+-- Cloud files already handled by auto-print, so they are never printed twice.
+CREATE TABLE IF NOT EXISTS printed_items (
+    service   TEXT NOT NULL,
+    item_id   TEXT NOT NULL,
+    ts        TEXT NOT NULL,
+    PRIMARY KEY (service, item_id)
+);
+
+-- Small key/value store for runtime toggles (e.g. auto-print on/off).
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
 """
 
 
@@ -91,6 +105,37 @@ class ActivityLog:
             c.execute(
                 "UPDATE activity SET size_bytes = ? WHERE id = ?",
                 (size_bytes, activity_id),
+            )
+
+    # --- auto-print dedup --------------------------------------------------
+    def is_printed(self, service: str, item_id: str) -> bool:
+        with self._conn() as c:
+            row = c.execute(
+                "SELECT 1 FROM printed_items WHERE service = ? AND item_id = ?",
+                (service, item_id),
+            ).fetchone()
+        return row is not None
+
+    def mark_printed(self, service: str, item_id: str) -> None:
+        ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with self._conn() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO printed_items (service, item_id, ts) VALUES (?, ?, ?)",
+                (service, item_id, ts),
+            )
+
+    # --- settings ----------------------------------------------------------
+    def get_setting(self, key: str, default: str | None = None) -> str | None:
+        with self._conn() as c:
+            row = c.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else default
+
+    def set_setting(self, key: str, value: str) -> None:
+        with self._conn() as c:
+            c.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?)"
+                " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
             )
 
     def recent(self, limit: int = 100, kind: Kind | None = None) -> list[Activity]:

@@ -11,6 +11,10 @@ SANE, CUPS, or any tool other than PrintBridge itself.
   eSCL (AirScan) and uploads it to your chosen cloud service.
 - **Print:** upload a file in the web UI, PrintBridge sends it to the printer
   over IPP.
+- **Cloud → Print:** turn on auto-print and PrintBridge watches a cloud folder;
+  any file dropped there is downloaded and printed automatically. A file is
+  printed exactly once (tracked in the database), and the original stays in the
+  cloud.
 - **Protocol:** every scan and print is logged — what, when, to/from which
   service, success or failure — and shown in the UI.
 

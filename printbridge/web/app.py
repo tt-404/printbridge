@@ -1,6 +1,7 @@
 """FastAPI web application — the only surface the user interacts with."""
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request, UploadFile
@@ -11,6 +12,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ..config import Config
 from ..core import Core
+from ..poller import Poller
 
 _HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
@@ -19,7 +21,17 @@ templates = Jinja2Templates(directory=str(_HERE / "templates"))
 def create_app(config: Config | None = None) -> FastAPI:
     config = config or Config.load()
     core = Core(config)
-    app = FastAPI(title="PrintBridge")
+    poller = Poller(core, config.autoprint.interval_seconds)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        poller.start()
+        try:
+            yield
+        finally:
+            await poller.stop()
+
+    app = FastAPI(title="PrintBridge", lifespan=lifespan)
     app.state.core = core
     app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
 
@@ -33,10 +45,23 @@ def create_app(config: Config | None = None) -> FastAPI:
             (key, p) for key, p in core.providers.items()
             if p.status().state.value == "linked"
         ]
+        # Linked services we can watch for files to auto-print.
+        watched = [
+            (p.label, getattr(p, "print_folder", None))
+            for _, p in linked if getattr(p, "supports_incoming", False)
+        ]
         return templates.TemplateResponse(
             request, "dashboard.html",
-            ctx(activity=core.log.recent(limit=10), linked=linked),
+            ctx(activity=core.log.recent(limit=10), linked=linked,
+                autoprint=core.autoprint_enabled(),
+                interval=config.autoprint.interval_seconds,
+                watched=watched),
         )
+
+    @app.post("/autoprint/toggle")
+    async def autoprint_toggle():
+        core.set_autoprint(not core.autoprint_enabled())
+        return RedirectResponse("/", status_code=303)
 
     # --- services ----------------------------------------------------------
     @app.get("/services")

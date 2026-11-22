@@ -20,7 +20,7 @@ from typing import Any
 import httpx
 
 from ..config import data_dir
-from .base import LinkState, Provider, ProviderStatus, register
+from .base import IncomingFile, LinkState, Provider, ProviderStatus, register
 
 _AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0"
 _GRAPH = "https://graph.microsoft.com/v1.0"
@@ -31,10 +31,13 @@ class OneDriveProvider:
     key = "onedrive"
     label = "OneDrive"
     experimental = False
+    supports_incoming = True
 
-    def __init__(self, client_id: str = "", upload_folder: str = "/PrintBridge") -> None:
+    def __init__(self, client_id: str = "", upload_folder: str = "/PrintBridge",
+                 print_folder: str = "/PrintBridge/ToPrint") -> None:
         self.client_id = client_id
         self.upload_folder = "/" + upload_folder.strip("/")
+        self.print_folder = "/" + print_folder.strip("/")
         self._token_file = data_dir() / "onedrive_token.json"
         # Transient device-code state for a link in progress.
         self._pending: dict[str, Any] | None = None
@@ -147,6 +150,29 @@ class OneDriveProvider:
             timeout=120,
         )
         resp.raise_for_status()
+
+    # --- incoming (Cloud -> Print) -----------------------------------------
+    def list_incoming(self) -> list[IncomingFile]:
+        token = self._access_token()
+        path = self.print_folder.lstrip("/")
+        url = f"{_GRAPH}/me/drive/root:/{path}:/children"
+        resp = httpx.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+        if resp.status_code == 404:
+            return []  # folder not created yet -> nothing to print
+        resp.raise_for_status()
+        out: list[IncomingFile] = []
+        for item in resp.json().get("value", []):
+            if "file" in item:  # skip sub-folders
+                out.append(IncomingFile(id=item["id"], name=item["name"]))
+        return out
+
+    def download(self, file_id: str) -> bytes:
+        token = self._access_token()
+        url = f"{_GRAPH}/me/drive/items/{file_id}/content"
+        resp = httpx.get(url, headers={"Authorization": f"Bearer {token}"},
+                         timeout=120, follow_redirects=True)
+        resp.raise_for_status()
+        return resp.content
 
 
 @register("onedrive")

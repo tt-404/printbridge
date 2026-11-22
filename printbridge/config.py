@@ -37,9 +37,18 @@ class WebConfig:
 
 
 @dataclass
+class AutoprintConfig:
+    # Default state when the DB has no stored toggle yet.
+    enabled: bool = False
+    # How often to poll watched cloud folders, in seconds.
+    interval_seconds: int = 60
+
+
+@dataclass
 class Config:
     printer: PrinterConfig = field(default_factory=PrinterConfig)
     web: WebConfig = field(default_factory=WebConfig)
+    autoprint: AutoprintConfig = field(default_factory=AutoprintConfig)
     database: str = "printbridge.db"
     services: dict[str, dict[str, Any]] = field(default_factory=dict)
 
@@ -60,6 +69,7 @@ class Config:
         return cls(
             printer=PrinterConfig(**(raw.get("printer") or {})),
             web=WebConfig(**(raw.get("web") or {})),
+            autoprint=AutoprintConfig(**(raw.get("autoprint") or {})),
             database=raw.get("database", "printbridge.db"),
             services=raw.get("services") or {},
         )

@@ -25,6 +25,34 @@
 </section>
 
 <section class="card">
+  <h2>Automatischer Druck aus der Cloud</h2>
+  <p class="row">
+    Status:
+    <span class="status status-{{ 'linked' if autoprint else 'unlinked' }}">
+      {{ 'aktiv' if autoprint else 'aus' }}
+    </span>
+    <form method="post" action="/autoprint/toggle">
+      <button class="{{ 'secondary' if autoprint else '' }}">
+        {{ 'Deaktivieren' if autoprint else 'Aktivieren' }}
+      </button>
+    </form>
+  </p>
+  {% if watched %}
+  <p class="muted">
+    Dateien, die in diesen Cloud-Ordner gelegt werden, druckt PrintBridge
+    automatisch (Abfrage alle {{ interval }}s):
+  </p>
+  <ul>
+    {% for label, folder in watched %}
+    <li><strong>{{ label }}</strong>: <code>{{ folder or '—' }}</code></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Kein überwachbarer Dienst verbunden. <a href="/services">Dienst verbinden →</a></p>
+  {% endif %}
+</section>
+
+<section class="card">
   <h2>Letzte Aktivität</h2>
   {% include "_activity_table.html" %}
   <p><a href="/activity">Vollständiges Protokoll →</a></p>
