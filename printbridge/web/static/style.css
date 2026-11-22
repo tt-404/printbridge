@@ -56,6 +56,25 @@ th { color: var(--muted); font-weight: 600; }
   font-size: 1.6rem; font-weight: 700; letter-spacing: 0.1em;
   font-family: ui-monospace, Menlo, monospace;
 }
+.inline { display: inline; }
+.chip {
+  font-size: 0.82rem; padding: 0.25rem 0.6rem; border-radius: 7px;
+  border: 1px solid var(--border); text-decoration: none; color: var(--fg);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.folderlist { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+.folderlist li {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border);
+}
+.folderlist .folder { text-decoration: none; color: var(--fg); font-weight: 500; }
+.folderlist .folder:hover { color: var(--accent); }
+.folder-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+button.link {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  padding: 0.2rem 0.3rem; font-size: 0.85rem;
+}
+button.link:hover { text-decoration: underline; }
 .filters { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; }
 .filters a { color: var(--muted); text-decoration: none; }
 .filters a.active { color: var(--fg); font-weight: 600; }

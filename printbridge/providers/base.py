@@ -34,14 +34,47 @@ class IncomingFile:
     name: str
 
 
+@dataclass
+class Folder:
+    """A folder in a cloud service, for the folder browser."""
+    name: str
+    path: str
+
+
+def parent_folder(path: str, root: str) -> str | None:
+    """The parent of `path`, or None if `path` is the browse root.
+
+    Handles OneDrive's empty-string root as well as a non-empty root like
+    Proton's "/my-files".
+    """
+    if path == root:
+        return None
+    parent = path.rsplit("/", 1)[0]
+    if parent == "" and root != "":
+        return root
+    if len(parent) < len(root):
+        return root if root else None
+    return parent
+
+
 class Provider(Protocol):
     key: str          # stable identifier, e.g. "onedrive"
     label: str        # human name shown in the UI
     experimental: bool
     # True if this provider can be watched for files to auto-print (Cloud -> Print).
     supports_incoming: bool
+    # True if the folder browser can list this provider's folders.
+    supports_browse: bool
 
     def status(self) -> ProviderStatus: ...
+
+    def browse_root(self) -> str:
+        """The path the folder browser starts at (may be '')."""
+        ...
+
+    def list_folders(self, path: str) -> list[Folder]:
+        """List sub-folders of `path` (files excluded). Raises on failure."""
+        ...
 
     def begin_link(self) -> ProviderStatus:
         """Start connecting the account (e.g. request a device code)."""

@@ -30,6 +30,7 @@ class Core:
         # that keeps failing does not spam the activity log every poll.
         self._failed_logged: set[tuple[str, str]] = set()
         self._build_providers()
+        self._apply_folder_overrides()
 
     def _build_providers(self) -> None:
         """Instantiate every registered provider, passing its config block."""
@@ -48,6 +49,25 @@ class Core:
 
     def provider(self, key: str) -> Provider:
         return self._providers[key]
+
+    # --- target folders (user-selected, persisted in settings) -------------
+    _FOLDER_ATTR = {"upload": "upload_folder", "print": "print_folder"}
+
+    def _apply_folder_overrides(self) -> None:
+        """Override provider default folders with any the user picked earlier."""
+        for key, p in self._providers.items():
+            for which, attr in self._FOLDER_ATTR.items():
+                stored = self.log.get_setting(f"folder:{key}:{which}")
+                if stored and hasattr(p, attr):
+                    setattr(p, attr, stored)
+
+    def set_folder(self, key: str, which: str, path: str) -> None:
+        """Persist and apply a chosen target folder ('upload' or 'print')."""
+        attr = self._FOLDER_ATTR[which]
+        self.log.set_setting(f"folder:{key}:{which}", path)
+        p = self._providers[key]
+        if hasattr(p, attr):
+            setattr(p, attr, path)
 
     # --- actions -----------------------------------------------------------
     def scan_to_service(self, service_key: str, settings: ScanSettings | None = None) -> int:

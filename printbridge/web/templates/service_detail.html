@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ provider.label }} — PrintBridge{% endblock %}
+{% block content %}
+<section class="card">
+  <p><a href="/services">← Dienste</a></p>
+  <h2>{{ provider.label }} konfigurieren</h2>
+  <p class="row">
+    Status:
+    <span class="status status-{{ status.state.value }}">{{ status.state.value }}</span>
+  </p>
+  <p class="muted">Scan-Zielordner: <code>{{ upload_folder or "—" }}</code></p>
+  <p class="muted">Druck-Ordner (Cloud→Druck): <code>{{ print_folder or "—" }}</code></p>
+</section>
+
+{% if status.state.value != "linked" %}
+<section class="card">
+  <p class="muted">Bitte zuerst verbinden, dann kannst du die Ordner wählen.</p>
+  <p><a href="/services">→ Zur Verbindung</a></p>
+</section>
+{% elif not can_browse %}
+<section class="card"><p class="muted">Dieser Dienst unterstützt kein Durchsuchen.</p></section>
+{% else %}
+<section class="card">
+  <h3>Ordner durchsuchen</h3>
+  <p class="muted">Aktueller Ordner: <code>{{ current or "/" }}</code></p>
+  {% if error %}<p class="status status-error">{{ error }}</p>{% endif %}
+
+  <div class="row">
+    {% if parent is not none %}
+    <a class="chip" href="/services/{{ key }}?path={{ parent|urlencode }}">⬆ Übergeordnet</a>
+    {% endif %}
+    <form method="post" action="/services/{{ key }}/folder" class="inline">
+      <input type="hidden" name="which" value="upload">
+      <input type="hidden" name="path" value="{{ current }}">
+      <input type="hidden" name="current" value="{{ current }}">
+      <button class="secondary">Diesen als Scan-Ordner</button>
+    </form>
+    <form method="post" action="/services/{{ key }}/folder" class="inline">
+      <input type="hidden" name="which" value="print">
+      <input type="hidden" name="path" value="{{ current }}">
+      <input type="hidden" name="current" value="{{ current }}">
+      <button class="secondary">Diesen als Druck-Ordner</button>
+    </form>
+  </div>
+
+  {% if folders %}
+  <ul class="folderlist">
+    {% for f in folders %}
+    <li>
+      <a class="folder" href="/services/{{ key }}?path={{ f.path|urlencode }}">📁 {{ f.name }}</a>
+      <span class="folder-actions">
+        <form method="post" action="/services/{{ key }}/folder" class="inline">
+          <input type="hidden" name="which" value="upload">
+          <input type="hidden" name="path" value="{{ f.path }}">
+          <input type="hidden" name="current" value="{{ current }}">
+          <button class="link">Scan hierher</button>
+        </form>
+        <form method="post" action="/services/{{ key }}/folder" class="inline">
+          <input type="hidden" name="which" value="print">
+          <input type="hidden" name="path" value="{{ f.path }}">
+          <input type="hidden" name="current" value="{{ current }}">
+          <button class="link">Druck hierher</button>
+        </form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Keine Unterordner hier.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

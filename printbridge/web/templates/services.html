@@ -9,6 +9,9 @@
       <strong>{{ p.label }}</strong>
       {% if p.experimental %}<span class="badge">experimentell</span>{% endif %}
       <span class="status status-{{ st.state.value }}">{{ st.state.value }}</span>
+      {% if st.state.value == "linked" and p.supports_browse %}
+      <a class="chip" href="/services/{{ key }}">Ordner wählen</a>
+      {% endif %}
     </div>
     {% if st.message %}<p class="muted">{{ st.message }}</p>{% endif %}
 

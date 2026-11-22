@@ -20,7 +20,7 @@ from typing import Any
 import httpx
 
 from ..config import data_dir
-from .base import IncomingFile, LinkState, Provider, ProviderStatus, register
+from .base import Folder, IncomingFile, LinkState, Provider, ProviderStatus, register
 
 _AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0"
 _GRAPH = "https://graph.microsoft.com/v1.0"
@@ -32,6 +32,7 @@ class OneDriveProvider:
     label = "OneDrive"
     experimental = False
     supports_incoming = True
+    supports_browse = True
 
     def __init__(self, client_id: str = "", upload_folder: str = "/PrintBridge",
                  print_folder: str = "/PrintBridge/ToPrint") -> None:
@@ -173,6 +174,30 @@ class OneDriveProvider:
                          timeout=120, follow_redirects=True)
         resp.raise_for_status()
         return resp.content
+
+    # --- folder browser ----------------------------------------------------
+    def browse_root(self) -> str:
+        return ""  # OneDrive drive root
+
+    def list_folders(self, path: str) -> list[Folder]:
+        token = self._access_token()
+        rel = path.strip("/")
+        if rel:
+            url = f"{_GRAPH}/me/drive/root:/{rel}:/children"
+        else:
+            url = f"{_GRAPH}/me/drive/root/children"
+        resp = httpx.get(url, headers={"Authorization": f"Bearer {token}"},
+                         params={"$select": "name,folder", "$top": "200"}, timeout=30)
+        if resp.status_code == 404:
+            return []
+        resp.raise_for_status()
+        out: list[Folder] = []
+        for item in resp.json().get("value", []):
+            if "folder" in item:
+                name = item["name"]
+                full = f"/{rel}/{name}" if rel else f"/{name}"
+                out.append(Folder(name=name, path=full))
+        return out
 
 
 @register("onedrive")

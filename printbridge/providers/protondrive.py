@@ -28,9 +28,30 @@ import tempfile
 import time
 from pathlib import Path
 
-from .base import IncomingFile, LinkState, Provider, ProviderStatus, register
+from .base import Folder, IncomingFile, LinkState, Provider, ProviderStatus, register
 
 _PROBE_TTL = 30.0  # seconds to cache the auth probe so the dashboard stays fast
+
+
+def _iter_items(stdout: str):
+    """Yield entries from `filesystem list --json`, tolerant of the wrapper."""
+    data = json.loads(stdout)
+    if isinstance(data, list):
+        return [it for it in data if isinstance(it, dict)]
+    if isinstance(data, dict):
+        lst = next((v for v in data.values() if isinstance(v, list)), [])
+        return [it for it in lst if isinstance(it, dict)]
+    return []
+
+
+def _is_folder(it: dict) -> bool:
+    type_str = str(it.get("type", "")).lower()
+    return type_str in ("folder", "dir", "directory") or it.get("isFolder") is True
+
+
+def _name_of(it: dict) -> str | None:
+    name = it.get("name") or it.get("filename") or it.get("path")
+    return str(name).rstrip("/").split("/")[-1] if name else None
 
 
 def _parse_list_json(stdout: str, folder: str) -> list[IncomingFile]:
@@ -39,28 +60,27 @@ def _parse_list_json(stdout: str, folder: str) -> list[IncomingFile]:
     Tolerant on purpose: accepts either a top-level list or a dict wrapping a
     list, and tries several common field names. VERIFY against the real CLI.
     """
-    data = json.loads(stdout)
-    if isinstance(data, list):
-        items = data
-    elif isinstance(data, dict):
-        items = next((v for v in data.values() if isinstance(v, list)), [])
-    else:
-        items = []
-
     base = folder.rstrip("/")
     out: list[IncomingFile] = []
-    for it in items:
-        if not isinstance(it, dict):
+    for it in _iter_items(stdout):
+        if _is_folder(it):
             continue
-        type_str = str(it.get("type", "")).lower()
-        is_folder = type_str in ("folder", "dir", "directory") or it.get("isFolder") is True
-        if is_folder:
+        name = _name_of(it)
+        if name:
+            out.append(IncomingFile(id=f"{base}/{name}", name=name))
+    return out
+
+
+def _parse_folders_json(stdout: str, folder: str) -> list[Folder]:
+    """Sub-folders from `filesystem list --json` (files excluded)."""
+    base = folder.rstrip("/")
+    out: list[Folder] = []
+    for it in _iter_items(stdout):
+        if not _is_folder(it):
             continue
-        name = it.get("name") or it.get("filename") or it.get("path")
-        if not name:
-            continue
-        name = str(name).rstrip("/").split("/")[-1]
-        out.append(IncomingFile(id=f"{base}/{name}", name=name))
+        name = _name_of(it)
+        if name:
+            out.append(Folder(name=name, path=f"{base}/{name}"))
     return out
 
 
@@ -69,6 +89,7 @@ class ProtonDriveProvider:
     label = "Proton Drive"
     experimental = True
     supports_incoming = True
+    supports_browse = True
 
     def __init__(self, binary: str = "proton-drive",
                  root: str = "/my-files",
@@ -165,6 +186,16 @@ class ProtonDriveProvider:
             if not files:
                 raise RuntimeError("proton-drive download produced no file")
             return files[0].read_bytes()
+
+    # --- folder browser ----------------------------------------------------
+    def browse_root(self) -> str:
+        return self.root
+
+    def list_folders(self, path: str) -> list[Folder]:
+        proc = self._run(["filesystem", "list", path, "--json"], timeout=60)
+        if proc.returncode != 0:
+            return []
+        return _parse_folders_json(proc.stdout, path)
 
 
 @register("protondrive")

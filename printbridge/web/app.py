@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
@@ -13,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from ..config import Config
 from ..core import Core
 from ..poller import Poller
+from ..providers.base import parent_folder
 
 _HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
@@ -68,6 +70,34 @@ def create_app(config: Config | None = None) -> FastAPI:
     async def services(request: Request):
         items = [(key, p, p.status()) for key, p in core.providers.items()]
         return templates.TemplateResponse(request, "services.html", ctx(items=items))
+
+    @app.get("/services/{key}")
+    async def service_detail(request: Request, key: str, path: str | None = None):
+        p = core.provider(key)
+        st = p.status()
+        can_browse = getattr(p, "supports_browse", False)
+        root = p.browse_root() if can_browse else ""
+        current = path if path is not None else root
+        folders, error = [], None
+        if can_browse and st.state.value == "linked":
+            try:
+                folders = await run_in_threadpool(p.list_folders, current)
+            except Exception as exc:
+                error = str(exc)
+        parent = parent_folder(current, root) if can_browse else None
+        return templates.TemplateResponse(request, "service_detail.html", ctx(
+            key=key, provider=p, status=st, can_browse=can_browse,
+            current=current, parent=parent, folders=folders, error=error,
+            upload_folder=getattr(p, "upload_folder", None),
+            print_folder=getattr(p, "print_folder", None),
+        ))
+
+    @app.post("/services/{key}/folder")
+    async def set_folder(key: str, which: str = Form(...), path: str = Form(...),
+                         current: str = Form("")):
+        if which in ("upload", "print"):
+            core.set_folder(key, which, path)
+        return RedirectResponse(f"/services/{key}?path={quote(current)}", status_code=303)
 
     @app.post("/services/{key}/link")
     async def link(key: str):
