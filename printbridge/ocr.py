@@ -78,11 +78,14 @@ def derive_name(text: str, fallback: str) -> str:
 
 def ocr_and_rename(data: bytes, original_name: str, *,
                    language: str = "deu+eng", binary: str = "ocrmypdf",
-                   timeout: float = 300.0) -> tuple[bytes, str]:
+                   namer=None, timeout: float = 300.0) -> tuple[bytes, str]:
     """OCR the PDF and return (searchable_pdf_bytes, derived_name).
 
-    Falls back to (data, original_name) if OCR is unavailable or fails.
+    `namer(text, fallback)` turns the recognised text into a filename; defaults
+    to the rule-based derive_name. Falls back to (data, original_name) if OCR is
+    unavailable or fails.
     """
+    namer = namer or derive_name
     if not available(binary):
         return data, original_name
     with tempfile.TemporaryDirectory() as tmp:
@@ -101,5 +104,4 @@ def ocr_and_rename(data: bytes, original_name: str, *,
             log.warning("ocrmypdf failed (%s): %s", proc.returncode, proc.stderr.strip()[:200])
             return data, original_name
         text = sidecar.read_text(errors="replace") if sidecar.exists() else ""
-        new_name = derive_name(text, original_name)
-        return out.read_bytes(), new_name
+        return out.read_bytes(), namer(text, original_name)

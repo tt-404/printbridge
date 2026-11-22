@@ -111,12 +111,16 @@ class Core:
 
     # --- upload preparation (optional OCR + auto-rename) -------------------
     def _prepare_upload(self, data: bytes, filename: str) -> tuple[bytes, str]:
-        if not self.config.ocr.enabled:
+        cfg = self.config.ocr
+        if not cfg.enabled:
             return data, filename
+        namer = None
+        if cfg.naming == "llm":
+            from . import naming
+            namer = naming.make_namer(cfg.model)
         try:
-            return ocr.ocr_and_rename(data, filename,
-                                      language=self.config.ocr.language,
-                                      binary=self.config.ocr.binary)
+            return ocr.ocr_and_rename(data, filename, language=cfg.language,
+                                      binary=cfg.binary, namer=namer)
         except Exception:
             log.warning("OCR step failed for %s; uploading original", filename,
                         exc_info=True)

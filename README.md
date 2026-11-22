@@ -19,9 +19,13 @@ SANE, CUPS, or any tool other than PrintBridge itself.
   cloud.
 - **OCR + auto-rename (optional):** with `ocr.enabled`, each scan runs through
   `ocrmypdf` before upload — the PDF becomes searchable and is renamed from its
-  text (date + title), e.g. `2026-04-03_Rechnung_Swisscom.pdf`. Needs
-  `ocrmypdf` + Tesseract installed (`sudo apt install ocrmypdf tesseract-ocr
-  tesseract-ocr-deu`); any failure falls back to the original file and name.
+  text. Needs `ocrmypdf` + Tesseract installed (`sudo apt install ocrmypdf
+  tesseract-ocr tesseract-ocr-deu`); any failure falls back to the original.
+  Two naming modes (`ocr.naming`): `rules` (offline — date + title, e.g.
+  `2026-04-03_Rechnung_Swisscom.pdf`) or `llm`, which asks Claude to extract
+  `<recipient first name>_<sender>_<date>` (e.g. `Anna_Swisscom_2026-03-15.pdf`).
+  `llm` needs `ANTHROPIC_API_KEY` in the service environment; set `ocr.model`
+  (`claude-haiku-5-5` is cheap and plenty for this extraction).
 - **Protocol:** every scan and print is logged — what, when, to/from which
   service, success or failure — and shown in the UI.
 
