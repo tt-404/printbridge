@@ -91,8 +91,10 @@ def ocr_and_rename(data: bytes, original_name: str, *,
         sidecar = Path(tmp) / "text.txt"
         src.write_bytes(data)
         proc = subprocess.run(
-            [binary, "-l", language, "--skip-text", "--sidecar", str(sidecar),
-             str(src), str(out)],
+            # --rotate-pages/--deskew straighten tilted or mis-oriented scans
+            # (needs the tesseract OSD data) before OCR, for better text + names.
+            [binary, "-l", language, "--skip-text", "--rotate-pages", "--deskew",
+             "--sidecar", str(sidecar), str(src), str(out)],
             capture_output=True, text=True, timeout=timeout,
         )
         if proc.returncode != 0 or not out.exists():
