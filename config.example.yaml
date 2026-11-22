@@ -1,0 +1,32 @@
+# PrintBridge configuration.
+# Copy to config.yaml. Most settings can also be changed from the web UI.
+
+# Network printer/scanner that speaks eSCL (scan) and IPP (print).
+printer:
+  # Hostname or IP of the device on your LAN, e.g. the HP OfficeJet Pro 9010.
+  host: "192.168.0.98"
+  # eSCL (AirScan) base path. Standard for most AirScan devices.
+  escl_path: "/eSCL"
+
+# Where the web UI listens. Bind to 0.0.0.0 to reach it from other machines.
+web:
+  host: "0.0.0.0"
+  port: 8080
+
+# Local SQLite database for the activity log. Relative paths are resolved
+# against the data directory (default: ~/.local/share/printbridge).
+database: "printbridge.db"
+
+# Cloud services. Secrets entered via the web UI are stored in the data
+# directory, NOT here. This file only holds non-secret, declarative settings.
+services:
+  onedrive:
+    enabled: false
+    # Microsoft Graph application (client) ID from your Azure app registration.
+    # Required because Microsoft does not allow a shared public client secret.
+    client_id: ""
+    # Folder inside OneDrive where scans are uploaded.
+    upload_folder: "/PrintBridge"
+  protondrive:
+    enabled: false
+    # Experimental: Proton Drive has no official public API. See README.

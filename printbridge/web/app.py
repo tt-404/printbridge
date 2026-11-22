@@ -1,0 +1,91 @@
+"""FastAPI web application — the only surface the user interacts with."""
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import FastAPI, Form, Request, UploadFile
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
+
+from ..config import Config
+from ..core import Core
+
+_HERE = Path(__file__).parent
+templates = Jinja2Templates(directory=str(_HERE / "templates"))
+
+
+def create_app(config: Config | None = None) -> FastAPI:
+    config = config or Config.load()
+    core = Core(config)
+    app = FastAPI(title="PrintBridge")
+    app.state.core = core
+    app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
+
+    def ctx(**extra):
+        return {"version": __import__("printbridge").__version__, **extra}
+
+    # --- dashboard ---------------------------------------------------------
+    @app.get("/")
+    async def dashboard(request: Request):
+        linked = [
+            (key, p) for key, p in core.providers.items()
+            if p.status().state.value == "linked"
+        ]
+        return templates.TemplateResponse(
+            request, "dashboard.html",
+            ctx(activity=core.log.recent(limit=10), linked=linked),
+        )
+
+    # --- services ----------------------------------------------------------
+    @app.get("/services")
+    async def services(request: Request):
+        items = [(key, p, p.status()) for key, p in core.providers.items()]
+        return templates.TemplateResponse(request, "services.html", ctx(items=items))
+
+    @app.post("/services/{key}/link")
+    async def link(key: str):
+        await run_in_threadpool(core.provider(key).begin_link)
+        return RedirectResponse("/services", status_code=303)
+
+    @app.post("/services/{key}/poll")
+    async def poll(key: str):
+        await run_in_threadpool(core.provider(key).poll_link)
+        return RedirectResponse("/services", status_code=303)
+
+    @app.post("/services/{key}/unlink")
+    async def unlink(key: str):
+        await run_in_threadpool(core.provider(key).unlink)
+        return RedirectResponse("/services", status_code=303)
+
+    # --- scan --------------------------------------------------------------
+    @app.post("/scan")
+    async def scan(service: str = Form(...)):
+        try:
+            await run_in_threadpool(core.scan_to_service, service)
+        except Exception:
+            pass  # error already recorded in the activity log; surfaced in UI
+        return RedirectResponse("/", status_code=303)
+
+    # --- print -------------------------------------------------------------
+    @app.post("/print")
+    async def print_file(file: UploadFile):
+        data = await file.read()
+        fmt = file.content_type or "application/octet-stream"
+        try:
+            await run_in_threadpool(core.print_document, file.filename or "document", data, fmt)
+        except Exception:
+            pass  # recorded in the log
+        return RedirectResponse("/", status_code=303)
+
+    # --- activity log ------------------------------------------------------
+    @app.get("/activity")
+    async def activity(request: Request, kind: str | None = None):
+        k = kind if kind in ("scan", "print") else None
+        return templates.TemplateResponse(
+            request, "activity.html",
+            ctx(activity=core.log.recent(limit=500, kind=k), filter=k),
+        )
+
+    return app

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Dienste</h2>
+  <p class="muted">Verbinde einen Cloud-Dienst. Danach kannst du direkt hinein scannen.</p>
+  {% for key, p, st in items %}
+  <div class="service">
+    <div class="service-head">
+      <strong>{{ p.label }}</strong>
+      {% if p.experimental %}<span class="badge">experimentell</span>{% endif %}
+      <span class="status status-{{ st.state.value }}">{{ st.state.value }}</span>
+    </div>
+    {% if st.message %}<p class="muted">{{ st.message }}</p>{% endif %}
+
+    {% if st.state.value == "pending" and st.user_code %}
+    <div class="devicecode">
+      <p>Öffne <a href="{{ st.verification_url }}" target="_blank" rel="noopener">{{ st.verification_url }}</a>
+         und gib diesen Code ein:</p>
+      <p class="code">{{ st.user_code }}</p>
+      <form method="post" action="/services/{{ key }}/poll"><button>Status prüfen</button></form>
+    </div>
+    {% elif st.state.value == "unlinked" %}
+    <form method="post" action="/services/{{ key }}/link"><button>Verbinden</button></form>
+    {% elif st.state.value == "linked" %}
+    <form method="post" action="/services/{{ key }}/unlink"><button class="secondary">Trennen</button></form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+[Unit]
+Description=PrintBridge — cloud bridge for network printer/scanner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust User and paths to your installation.
+User=pi
+WorkingDirectory=/home/pi/printbridge
+Environment=PRINTBRIDGE_CONFIG=/home/pi/printbridge/config.yaml
+ExecStart=/home/pi/printbridge/.venv/bin/printbridge
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

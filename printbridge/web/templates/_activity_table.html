@@ -1,0 +1,23 @@
+{% if activity %}
+<table>
+  <thead>
+    <tr><th>Zeit (UTC)</th><th>Typ</th><th>Datei</th><th>Dienst</th><th>Status</th><th>Größe</th></tr>
+  </thead>
+  <tbody>
+    {% for a in activity %}
+    <tr>
+      <td>{{ a.ts }}</td>
+      <td>{{ "Scan" if a.kind == "scan" else "Druck" }}</td>
+      <td>{{ a.filename }}</td>
+      <td>{{ a.service or "—" }}</td>
+      <td class="status status-{{ a.status }}">
+        {{ a.status }}{% if a.detail and a.status == "error" %}<br><span class="muted">{{ a.detail }}</span>{% endif %}
+      </td>
+      <td>{{ "%.0f KB"|format(a.size_bytes / 1024) if a.size_bytes else "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Noch keine Aktivität.</p>
+{% endif %}

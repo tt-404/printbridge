@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Scannen in die Cloud</h2>
+  {% if linked %}
+  <form method="post" action="/scan" class="row">
+    <select name="service">
+      {% for key, p in linked %}
+      <option value="{{ key }}">{{ p.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Scannen &amp; hochladen</button>
+  </form>
+  {% else %}
+  <p class="muted">Noch kein Dienst verbunden. <a href="/services">Dienst verbinden →</a></p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Drucken</h2>
+  <form method="post" action="/print" enctype="multipart/form-data" class="row">
+    <input type="file" name="file" required>
+    <button type="submit">Drucken</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Letzte Aktivität</h2>
+  {% include "_activity_table.html" %}
+  <p><a href="/activity">Vollständiges Protokoll →</a></p>
+</section>
+{% endblock %}
