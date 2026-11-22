@@ -23,8 +23,12 @@ class Core:
     def __init__(self, config: Config) -> None:
         self.config = config
         self.log = ActivityLog(config.database_path)
-        self.scanner = Scanner(config.printer.host, config.printer.escl_path)
-        self.printer = Printer(config.printer.host)
+        host = self.log.get_setting("printer:host") or config.printer.host
+        escl = self.log.get_setting("printer:escl_path") or config.printer.escl_path
+        self._printer_host = host
+        self._printer_escl = escl
+        self.scanner = Scanner(host, escl)
+        self.printer = Printer(host)
         self._providers: dict[str, Provider] = {}
         # (service, item_id) pairs we have already logged as failed, so a file
         # that keeps failing does not spam the activity log every poll.
@@ -49,6 +53,34 @@ class Core:
 
     def provider(self, key: str) -> Provider:
         return self._providers[key]
+
+    # --- printer settings (user-set in the UI, persisted) ------------------
+    @property
+    def printer_host(self) -> str:
+        return self._printer_host
+
+    @property
+    def printer_escl_path(self) -> str:
+        return self._printer_escl
+
+    def set_printer(self, host: str, escl_path: str = "/eSCL") -> None:
+        host = host.strip()
+        escl_path = escl_path.strip() or "/eSCL"
+        self.log.set_setting("printer:host", host)
+        self.log.set_setting("printer:escl_path", escl_path)
+        self._printer_host = host
+        self._printer_escl = escl_path
+        self.scanner = Scanner(host, escl_path)
+        self.printer = Printer(host)
+
+    def test_printer(self) -> dict[str, object]:
+        """Probe scanner (eSCL) and printer (IPP) reachability for the UI."""
+        scan_ok, scan_detail = self.scanner.reachable()
+        print_ok, print_detail = self.printer.reachable()
+        return {
+            "scan_ok": scan_ok, "scan_detail": scan_detail,
+            "print_ok": print_ok, "print_detail": print_detail,
+        }
 
     # --- target folders (user-selected, persisted in settings) -------------
     _FOLDER_ATTR = {"upload": "upload_folder", "print": "print_folder"}

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
 
+from .. import discovery
 from ..config import Config
 from ..core import Core
 from ..poller import Poller
@@ -64,6 +65,38 @@ def create_app(config: Config | None = None) -> FastAPI:
     async def autoprint_toggle():
         core.set_autoprint(not core.autoprint_enabled())
         return RedirectResponse("/", status_code=303)
+
+    # --- printer / scanner setup -------------------------------------------
+    def _printer_page(request: Request, *, test_result=None, discovered=None,
+                      discover_error=None):
+        return templates.TemplateResponse(request, "printer.html", ctx(
+            host=core.printer_host, escl_path=core.printer_escl_path,
+            discovery_available=discovery.available(),
+            test_result=test_result, discovered=discovered,
+            discover_error=discover_error,
+        ))
+
+    @app.get("/printer")
+    async def printer_page(request: Request):
+        return _printer_page(request)
+
+    @app.post("/printer")
+    async def printer_save(host: str = Form(...), escl_path: str = Form("/eSCL")):
+        core.set_printer(host, escl_path)
+        return RedirectResponse("/printer", status_code=303)
+
+    @app.post("/printer/test")
+    async def printer_test(request: Request):
+        result = await run_in_threadpool(core.test_printer)
+        return _printer_page(request, test_result=result)
+
+    @app.post("/printer/discover")
+    async def printer_discover(request: Request):
+        try:
+            devices = await run_in_threadpool(discovery.discover)
+            return _printer_page(request, discovered=devices)
+        except Exception as exc:
+            return _printer_page(request, discover_error=str(exc))
 
     # --- services ----------------------------------------------------------
     @app.get("/services")

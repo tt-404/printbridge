@@ -46,6 +46,17 @@ class Scanner:
         self.base = f"http://{host}{escl_path.rstrip('/')}"
         self.timeout = timeout
 
+    def reachable(self, timeout: float = 8.0) -> tuple[bool, str]:
+        """Probe the scanner via eSCL ScannerCapabilities. (ok, detail)."""
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.get(f"{self.base}/ScannerCapabilities")
+        except Exception as exc:
+            return False, str(exc)
+        if resp.status_code == 200:
+            return True, "eSCL erreichbar"
+        return False, f"HTTP {resp.status_code}"
+
     def scan(self, settings: ScanSettings | None = None) -> bytes:
         """Perform one scan and return the document bytes (concatenated pages).
 

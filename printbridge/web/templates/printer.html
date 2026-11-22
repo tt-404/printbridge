@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Drucker — PrintBridge{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Drucker &amp; Scanner</h2>
+  <p class="muted">
+    Gib die IP-Adresse des Geräts im Netzwerk an. Scannen läuft über
+    <strong>eSCL/AirScan</strong>, Drucken über <strong>IPP</strong> — kein
+    Treiber, kein Pairing. Das Gerät muss nur im selben Netz erreichbar sein.
+  </p>
+  <form method="post" action="/printer">
+    <div class="field">
+      <label for="host">IP-Adresse</label>
+      <input id="host" name="host" value="{{ host }}" placeholder="192.168.0.98" required>
+    </div>
+    <div class="field">
+      <label for="escl">eSCL-Pfad</label>
+      <input id="escl" name="escl_path" value="{{ escl_path }}" placeholder="/eSCL">
+    </div>
+    <button>Speichern</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Verbindung testen</h3>
+  <form method="post" action="/printer/test" class="inline">
+    <button class="secondary">Jetzt testen</button>
+  </form>
+  {% if test_result %}
+  <ul class="testresult">
+    <li>
+      Scanner (eSCL):
+      <span class="status status-{{ 'linked' if test_result.scan_ok else 'error' }}">
+        {{ 'erreichbar' if test_result.scan_ok else 'nicht erreichbar' }}
+      </span>
+      <span class="muted">{{ test_result.scan_detail }}</span>
+    </li>
+    <li>
+      Drucker (IPP):
+      <span class="status status-{{ 'linked' if test_result.print_ok else 'error' }}">
+        {{ 'erreichbar' if test_result.print_ok else 'nicht erreichbar' }}
+      </span>
+      <span class="muted">{{ test_result.print_detail }}</span>
+    </li>
+  </ul>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Im Netzwerk suchen</h3>
+  {% if discovery_available %}
+  <form method="post" action="/printer/discover" class="inline">
+    <button class="secondary">Geräte suchen</button>
+  </form>
+  {% if discover_error %}<p class="status status-error">{{ discover_error }}</p>{% endif %}
+  {% if discovered is not none %}
+    {% if discovered %}
+    <ul class="folderlist">
+      {% for d in discovered %}
+      <li>
+        <span><strong>{{ d.ip }}</strong>
+          <span class="muted">{{ d.name }} · {{ d.services|join(', ') }}</span></span>
+        <form method="post" action="/printer" class="inline">
+          <input type="hidden" name="host" value="{{ d.ip }}">
+          <input type="hidden" name="escl_path" value="{{ escl_path }}">
+          <button class="link">Übernehmen</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Keine Geräte gefunden.</p>
+    {% endif %}
+  {% endif %}
+  {% else %}
+  <p class="muted">Netzwerksuche nicht verfügbar (Paket „zeroconf" fehlt). Trage die IP oben manuell ein.</p>
+  {% endif %}
+</section>
+{% endblock %}

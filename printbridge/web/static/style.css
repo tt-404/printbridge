@@ -101,7 +101,7 @@ code {
 
 /* Forms & buttons */
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
-button, select, input[type="file"] {
+button, select, input[type="file"], input[type="text"], input:not([type]) {
   font: inherit;
   padding: 0.55rem 0.9rem;
   border-radius: 9px;
@@ -109,6 +109,15 @@ button, select, input[type="file"] {
   background: var(--surface-2);
   color: var(--fg);
 }
+input[type="text"]:focus, input:not([type]):focus, select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(229, 160, 13, 0.18);
+}
+.field { margin-bottom: 0.9rem; max-width: 360px; }
+.field label { display: block; margin-bottom: 0.3rem; color: var(--muted); font-size: 0.85rem; }
+.field input { width: 100%; }
+.testresult { list-style: none; padding: 0; margin: 0.9rem 0 0; }
+.testresult li { padding: 0.4rem 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 select { cursor: pointer; }
 input[type="file"] { padding: 0.4rem 0.6rem; max-width: 100%; }
 input[type="file"]::file-selector-button {

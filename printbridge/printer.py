@@ -23,6 +23,7 @@ _TAG_NAME = 0x42            # nameWithoutLanguage
 _TAG_MIME = 0x49           # mimeMediaType
 
 _OP_PRINT_JOB = 0x0002
+_OP_GET_PRINTER_ATTRS = 0x000B
 _VERSION = (2, 0)
 
 
@@ -49,6 +50,19 @@ def build_print_job(printer_uri: str, document: bytes, *,
     out += _attr(_TAG_MIME, "document-format", document_format)
     out.append(_TAG_END_OF_ATTRS)
     out += document
+    return bytes(out)
+
+
+def build_get_printer_attributes(printer_uri: str, *, request_id: int = 1) -> bytes:
+    """Encode a Get-Printer-Attributes request — used as a cheap reachability
+    probe that does not submit a job."""
+    out = bytearray()
+    out += struct.pack(">BB H I", _VERSION[0], _VERSION[1], _OP_GET_PRINTER_ATTRS, request_id)
+    out.append(_TAG_OPERATION_ATTRS)
+    out += _attr(_TAG_CHARSET, "attributes-charset", "utf-8")
+    out += _attr(_TAG_NATURAL_LANG, "attributes-natural-language", "en")
+    out += _attr(_TAG_URI, "printer-uri", printer_uri)
+    out.append(_TAG_END_OF_ATTRS)
     return bytes(out)
 
 
@@ -83,3 +97,21 @@ class Printer:
         code = parse_status_code(resp.content)
         if code >= 0x0100:
             raise RuntimeError(f"Printer rejected job, IPP status 0x{code:04x}")
+
+    def reachable(self, timeout: float = 8.0) -> tuple[bool, str]:
+        """Probe the printer via Get-Printer-Attributes. (ok, detail)."""
+        url = f"http://{self.host}:{self.port}{self.rp}"
+        try:
+            resp = httpx.post(url, content=build_get_printer_attributes(self.printer_uri),
+                              headers={"Content-Type": "application/ipp"}, timeout=timeout)
+        except Exception as exc:
+            return False, str(exc)
+        if resp.status_code != 200:
+            return False, f"HTTP {resp.status_code}"
+        try:
+            code = parse_status_code(resp.content)
+        except ValueError as exc:
+            return False, str(exc)
+        if code < 0x0100:
+            return True, "IPP erreichbar"
+        return False, f"IPP-Status 0x{code:04x}"
