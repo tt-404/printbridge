@@ -1,5 +1,7 @@
 # PrintBridge
 
+[![CI](https://github.com/tt-404/printbridge/actions/workflows/ci.yml/badge.svg)](https://github.com/tt-404/printbridge/actions/workflows/ci.yml)
+
 A small, web-first service that runs on a Raspberry Pi next to a network
 printer/scanner and connects it to **cloud services the printer firmware does
 not offer** — without touching the printer firmware at all.
