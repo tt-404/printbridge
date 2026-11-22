@@ -107,6 +107,13 @@ class ActivityLog:
                 (size_bytes, activity_id),
             )
 
+    def set_filename(self, activity_id: int, filename: str) -> None:
+        with self._conn() as c:
+            c.execute(
+                "UPDATE activity SET filename = ? WHERE id = ?",
+                (filename, activity_id),
+            )
+
     # --- auto-print dedup --------------------------------------------------
     def is_printed(self, service: str, item_id: str) -> bool:
         with self._conn() as c:

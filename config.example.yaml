@@ -29,6 +29,13 @@ scan_inbox:
   service: "protondrive"    # cloud provider key to upload into
   min_age_seconds: 10       # ignore files still being written
 
+# OCR + auto-rename: run each scan through ocrmypdf before upload. Makes the PDF
+# searchable and derives a filename (date + title) from the text. Needs the
+# ocrmypdf + tesseract packages installed; falls back to the original on failure.
+ocr:
+  enabled: false
+  language: "deu+eng"       # Tesseract language packs (apt: tesseract-ocr-deu ...)
+
 # Local SQLite database for the activity log. Relative paths are resolved
 # against the data directory (default: ~/.local/share/printbridge).
 database: "printbridge.db"

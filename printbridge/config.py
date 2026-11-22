@@ -45,6 +45,15 @@ class AutoprintConfig:
 
 
 @dataclass
+class OcrConfig:
+    # OCR the scan (ocrmypdf) before upload: makes the PDF searchable and
+    # derives a meaningful filename from the recognised text.
+    enabled: bool = False
+    language: str = "deu+eng"   # Tesseract language packs
+    binary: str = "ocrmypdf"
+
+
+@dataclass
 class ScanInboxConfig:
     # Walk-up scanning: the printer's "Scan to Network Folder" (SMB) drops files
     # into `dir`; PrintBridge uploads each new file to `service`.
@@ -60,6 +69,7 @@ class Config:
     web: WebConfig = field(default_factory=WebConfig)
     autoprint: AutoprintConfig = field(default_factory=AutoprintConfig)
     scan_inbox: ScanInboxConfig = field(default_factory=ScanInboxConfig)
+    ocr: OcrConfig = field(default_factory=OcrConfig)
     database: str = "printbridge.db"
     services: dict[str, dict[str, Any]] = field(default_factory=dict)
 
@@ -82,6 +92,7 @@ class Config:
             web=WebConfig(**(raw.get("web") or {})),
             autoprint=AutoprintConfig(**(raw.get("autoprint") or {})),
             scan_inbox=ScanInboxConfig(**(raw.get("scan_inbox") or {})),
+            ocr=OcrConfig(**(raw.get("ocr") or {})),
             database=raw.get("database", "printbridge.db"),
             services=raw.get("services") or {},
         )

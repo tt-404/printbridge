@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import ocr
 from . import providers as provider_pkg
 from .config import Config
 from .db import ActivityLog
@@ -104,6 +105,19 @@ class Core:
         if hasattr(p, attr):
             setattr(p, attr, path)
 
+    # --- upload preparation (optional OCR + auto-rename) -------------------
+    def _prepare_upload(self, data: bytes, filename: str) -> tuple[bytes, str]:
+        if not self.config.ocr.enabled:
+            return data, filename
+        try:
+            return ocr.ocr_and_rename(data, filename,
+                                      language=self.config.ocr.language,
+                                      binary=self.config.ocr.binary)
+        except Exception:
+            log.warning("OCR step failed for %s; uploading original", filename,
+                        exc_info=True)
+            return data, filename
+
     # --- actions -----------------------------------------------------------
     def scan_to_service(self, service_key: str, settings: ScanSettings | None = None) -> int:
         """Scan one document and upload it to the given cloud service.
@@ -117,10 +131,12 @@ class Core:
         activity_id = self.log.record("scan", filename, service=service_key, status="pending")
         try:
             data = self.scanner.scan(settings)
+            data, filename = self._prepare_upload(data, filename)
             provider.upload(filename, data)
         except Exception as exc:  # fail loud: the row carries the reason
             self.log.update_status(activity_id, "error", str(exc))
             raise
+        self.log.set_filename(activity_id, filename)
         self.log.set_size(activity_id, len(data))
         self.log.update_status(activity_id, "success")
         return activity_id
@@ -176,7 +192,8 @@ class Core:
                                           status="pending", size_bytes=stat.st_size)
             try:
                 data = f.read_bytes()
-                provider.upload(f.name, data)
+                data, upload_name = self._prepare_upload(data, f.name)
+                provider.upload(upload_name, data)
             except Exception as exc:
                 self.log.update_status(activity_id, "error", str(exc))
                 failed = inbox / "_failed"
@@ -186,6 +203,8 @@ class Core:
                 except OSError:
                     pass
                 continue
+            self.log.set_filename(activity_id, upload_name)
+            self.log.set_size(activity_id, len(data))
             self.log.update_status(activity_id, "success")
             f.unlink(missing_ok=True)
             count += 1

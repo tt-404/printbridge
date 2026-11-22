@@ -17,6 +17,11 @@ SANE, CUPS, or any tool other than PrintBridge itself.
   any file dropped there is downloaded and printed automatically. A file is
   printed exactly once (tracked in the database), and the original stays in the
   cloud.
+- **OCR + auto-rename (optional):** with `ocr.enabled`, each scan runs through
+  `ocrmypdf` before upload — the PDF becomes searchable and is renamed from its
+  text (date + title), e.g. `2026-04-03_Rechnung_Swisscom.pdf`. Needs
+  `ocrmypdf` + Tesseract installed (`sudo apt install ocrmypdf tesseract-ocr
+  tesseract-ocr-deu`); any failure falls back to the original file and name.
 - **Protocol:** every scan and print is logged — what, when, to/from which
   service, success or failure — and shown in the UI.
 
