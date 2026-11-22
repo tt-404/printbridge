@@ -51,8 +51,10 @@ class OcrConfig:
     enabled: bool = False
     language: str = "deu+eng"   # Tesseract language packs
     binary: str = "ocrmypdf"
-    # Filename strategy: "rules" (date + title, offline) or "llm" (Claude:
-    # <recipient first name>_<sender>_<date>; needs ANTHROPIC_API_KEY in the env).
+    # Filename strategy (all run on the scanned text):
+    #   "rules"  — date + title (offline)
+    #   "letter" — offline heuristic <recipient first name>_<sender>_<date>
+    #   "llm"    — Claude extracts the same, more robustly (needs ANTHROPIC_API_KEY)
     naming: str = "rules"
     model: str = "claude-opus-5-5"  # for naming=llm; claude-haiku-5-5 is cheaper
 

@@ -115,7 +115,9 @@ class Core:
         if not cfg.enabled:
             return data, filename
         namer = None
-        if cfg.naming == "llm":
+        if cfg.naming == "letter":
+            namer = ocr.derive_letter_name
+        elif cfg.naming == "llm":
             from . import naming
             namer = naming.make_namer(cfg.model)
         try:

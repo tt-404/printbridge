@@ -76,6 +76,48 @@ def derive_name(text: str, fallback: str) -> str:
     return "_".join(parts)[:80] + ".pdf"
 
 
+_SALUTATION = re.compile(
+    r"\b(?:Herr|Herrn|Frau|Monsieur|Madame)\s+"
+    r"([A-ZÄÖÜ][A-Za-zÄÖÜäöüéèàçï'-]+)\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüéèàçï'-]+",
+    re.S,
+)
+# Legal / public-body markers that mark a letterhead (sender) line.
+_SENDER_HINT = re.compile(
+    r"\b(AG|GmbH|SA|S[àa]rl|Gemeinde|Stadt|Kanton|Amt|Amtes|Direktion|Bank|"
+    r"Versicherung|Stiftung|Verein|Spital|Post|Swisscom|AXA|Helvetia)\b")
+
+
+def derive_letter_name(text: str, fallback: str) -> str:
+    """Local, offline heuristic for business letters:
+    <recipient first name>_<sender>_<date>.pdf — no model, no network.
+
+    Best-effort: unknown parts are dropped; an empty result uses the fallback.
+    """
+    text = (text or "").strip()
+    if not text:
+        return fallback
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+
+    m = _SALUTATION.search(text)
+    first = _slug(m.group(1), max_len=24) if m else ""
+
+    sender = ""
+    head = lines[:10]
+    hinted = next((ln for ln in head if _SENDER_HINT.search(ln)), None)
+    if hinted is None:
+        # first line with a few real letters (the letterhead)
+        hinted = next(
+            (ln for ln in head if len(re.sub(r"[^A-Za-zÄÖÜäöü]", "", ln)) >= 4),
+            None,
+        )
+    if hinted:
+        sender = _slug(hinted, max_len=40)
+
+    date = _find_date(text) or ""
+    parts = [p for p in (first, sender, date) if p]
+    return ("_".join(parts)[:120] + ".pdf") if parts else fallback
+
+
 def ocr_and_rename(data: bytes, original_name: str, *,
                    language: str = "deu+eng", binary: str = "ocrmypdf",
                    namer=None, timeout: float = 300.0) -> tuple[bytes, str]:
