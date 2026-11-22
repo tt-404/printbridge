@@ -162,8 +162,12 @@ class ProtonDriveProvider:
         with tempfile.TemporaryDirectory() as tmp:
             local = Path(tmp) / filename
             local.write_bytes(data)
+            # -f rename / -t keep the upload fully non-interactive: without a
+            # conflict strategy the CLI PROMPTS and would hang in the daemon.
+            # 'rename' never drops a scan; 't' skips thumbnail generation.
             proc = self._run(
-                ["filesystem", "upload", str(local), self.upload_folder],
+                ["filesystem", "upload", "-f", "rename", "-t",
+                 str(local), self.upload_folder],
                 timeout=300,
             )
             if proc.returncode != 0:
