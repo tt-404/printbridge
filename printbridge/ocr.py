@@ -78,8 +78,8 @@ def derive_name(text: str, fallback: str) -> str:
 
 _SALUTATION = re.compile(
     r"\b(?:Herr|Herrn|Frau|Monsieur|Madame)\s+"
-    r"([A-ZÄÖÜ][A-Za-zÄÖÜäöüéèàçï'-]+)\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüéèàçï'-]+",
-    re.S,
+    r"([^\W\d_][^\W\d_'’-]*)\s+[^\W\d_][^\W\d_'’-]*",  # First Last (any letters)
+    re.S | re.U,
 )
 # Legal / public-body markers that mark a letterhead (sender) line.
 _SENDER_HINT = re.compile(
