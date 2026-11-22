@@ -6,7 +6,9 @@ testable without a running web server.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from . import providers as provider_pkg
 from .config import Config
@@ -17,6 +19,7 @@ from .scanner import Scanner, ScanSettings
 
 log = logging.getLogger("printbridge")
 _AUTOPRINT_KEY = "autoprint_enabled"
+_SCANINBOX_KEY = "scaninbox_enabled"
 
 
 class Core:
@@ -131,6 +134,62 @@ class Core:
 
     def set_autoprint(self, enabled: bool) -> None:
         self.log.set_setting(_AUTOPRINT_KEY, "1" if enabled else "0")
+
+    # --- scan inbox (walk-up scan via SMB folder) --------------------------
+    def scan_inbox_enabled(self) -> bool:
+        stored = self.log.get_setting(_SCANINBOX_KEY)
+        if stored is None:
+            return self.config.scan_inbox.enabled
+        return stored == "1"
+
+    def set_scan_inbox(self, enabled: bool) -> None:
+        self.log.set_setting(_SCANINBOX_KEY, "1" if enabled else "0")
+
+    def poll_scan_inbox(self) -> int:
+        """Upload any new files dropped in the scan-inbox folder (by the printer's
+        Scan-to-Network-Folder) to the configured cloud service.
+
+        Files still being written (younger than min_age_seconds) are skipped so a
+        half-transferred scan is never uploaded. On success the local file is
+        removed (it is safely in the cloud and in the log); on failure it is moved
+        to a `_failed` subfolder so it is neither retried forever nor lost.
+        """
+        cfg = self.config.scan_inbox
+        inbox = Path(cfg.dir) if cfg.dir else None
+        if inbox is None or not inbox.is_dir():
+            return 0
+        provider = self._providers.get(cfg.service)
+        if provider is None or provider.status().state is not LinkState.LINKED:
+            return 0
+        now = time.time()
+        count = 0
+        for f in sorted(inbox.iterdir()):
+            if not f.is_file() or f.name.startswith(".") or f.name.startswith("_"):
+                continue
+            try:
+                stat = f.stat()
+            except OSError:
+                continue
+            if now - stat.st_mtime < cfg.min_age_seconds:
+                continue  # still being written
+            activity_id = self.log.record("scan", f.name, service=cfg.service,
+                                          status="pending", size_bytes=stat.st_size)
+            try:
+                data = f.read_bytes()
+                provider.upload(f.name, data)
+            except Exception as exc:
+                self.log.update_status(activity_id, "error", str(exc))
+                failed = inbox / "_failed"
+                failed.mkdir(exist_ok=True)
+                try:
+                    f.rename(failed / f.name)
+                except OSError:
+                    pass
+                continue
+            self.log.update_status(activity_id, "success")
+            f.unlink(missing_ok=True)
+            count += 1
+        return count
 
     # --- Cloud -> Print ----------------------------------------------------
     def poll_incoming_once(self) -> int:

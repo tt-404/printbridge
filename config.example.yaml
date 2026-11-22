@@ -20,6 +20,15 @@ autoprint:
   enabled: false
   interval_seconds: 60
 
+# Walk-up scanning: the printer scans to an SMB folder on this machine and
+# PrintBridge uploads each new file to the chosen cloud service. On/off is
+# toggled in the web UI.
+scan_inbox:
+  enabled: false
+  dir: ""                   # e.g. /home/pi/scan-inbox (the Samba share path)
+  service: "protondrive"    # cloud provider key to upload into
+  min_age_seconds: 10       # ignore files still being written
+
 # Local SQLite database for the activity log. Relative paths are resolved
 # against the data directory (default: ~/.local/share/printbridge).
 database: "printbridge.db"

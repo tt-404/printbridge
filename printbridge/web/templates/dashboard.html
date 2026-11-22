@@ -53,6 +53,30 @@
 </section>
 
 <section class="card">
+  <h2>Scan vom Drucker (Scan-Inbox)</h2>
+  <p class="row">
+    Status:
+    <span class="status status-{{ 'linked' if scaninbox else 'unlinked' }}">
+      {{ 'aktiv' if scaninbox else 'aus' }}
+    </span>
+    <form method="post" action="/scaninbox/toggle">
+      <button class="{{ 'secondary' if scaninbox else '' }}">
+        {{ 'Deaktivieren' if scaninbox else 'Aktivieren' }}
+      </button>
+    </form>
+  </p>
+  {% if scaninbox_dir %}
+  <p class="muted">
+    Scans, die der Drucker in den Ordner <code>{{ scaninbox_dir }}</code> ablegt
+    (via „Scan to Network Folder"), lädt PrintBridge automatisch nach
+    <strong>{{ scaninbox_service }}</strong> hoch.
+  </p>
+  {% else %}
+  <p class="muted">Kein Inbox-Ordner konfiguriert (siehe <code>scan_inbox.dir</code> in der Config).</p>
+  {% endif %}
+</section>
+
+<section class="card">
   <h2>Letzte Aktivität</h2>
   {% include "_activity_table.html" %}
   <p><a href="/activity">Vollständiges Protokoll →</a></p>

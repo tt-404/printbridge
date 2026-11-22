@@ -45,10 +45,21 @@ class AutoprintConfig:
 
 
 @dataclass
+class ScanInboxConfig:
+    # Walk-up scanning: the printer's "Scan to Network Folder" (SMB) drops files
+    # into `dir`; PrintBridge uploads each new file to `service`.
+    enabled: bool = False
+    dir: str = ""                 # e.g. /home/gadmin/scan-inbox
+    service: str = "protondrive"  # cloud provider key to upload into
+    min_age_seconds: int = 10     # ignore files newer than this (still writing)
+
+
+@dataclass
 class Config:
     printer: PrinterConfig = field(default_factory=PrinterConfig)
     web: WebConfig = field(default_factory=WebConfig)
     autoprint: AutoprintConfig = field(default_factory=AutoprintConfig)
+    scan_inbox: ScanInboxConfig = field(default_factory=ScanInboxConfig)
     database: str = "printbridge.db"
     services: dict[str, dict[str, Any]] = field(default_factory=dict)
 
@@ -70,6 +81,7 @@ class Config:
             printer=PrinterConfig(**(raw.get("printer") or {})),
             web=WebConfig(**(raw.get("web") or {})),
             autoprint=AutoprintConfig(**(raw.get("autoprint") or {})),
+            scan_inbox=ScanInboxConfig(**(raw.get("scan_inbox") or {})),
             database=raw.get("database", "printbridge.db"),
             services=raw.get("services") or {},
         )

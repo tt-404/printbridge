@@ -215,6 +215,27 @@ button.link:hover { text-decoration: underline; filter: none; }
 .filters a.active { color: var(--accent); background: rgba(229, 160, 13, 0.12); }
 ul { margin: 0.5rem 0; }
 
+/* One-tap scan result */
+.scanresult { text-align: center; padding: 2rem 1.4rem; }
+.scanresult .big {
+  font-size: 3.4rem; line-height: 1; margin-bottom: 0.4rem;
+  width: 84px; height: 84px; margin: 0 auto 0.6rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.scanresult .big.ok { color: var(--ok); background: rgba(70, 211, 105, 0.14); }
+.scanresult .big.err { color: var(--err); background: rgba(246, 104, 94, 0.14); }
+.scanresult .row { justify-content: center; margin-top: 1.2rem; }
+.btnlink {
+  display: inline-block; text-decoration: none;
+  padding: 0.6rem 1.1rem; border-radius: 9px; font-weight: 650;
+  background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+  color: var(--accent-fg);
+}
+.btnlink:hover { filter: brightness(1.07); color: var(--accent-fg); }
+.btnlink.secondary {
+  background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); font-weight: 500;
+}
+
 footer {
   max-width: 940px; margin: 2.5rem auto; padding: 0 1rem;
   color: var(--muted); font-size: 0.82rem;

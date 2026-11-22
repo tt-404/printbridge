@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Scan — PrintBridge{% endblock %}
+{% block content %}
+<section class="card scanresult">
+  {% if ok %}
+    <div class="big ok">✓</div>
+    <h2>Scan hochgeladen</h2>
+    <p class="muted">{{ filename }} → {{ label }}</p>
+  {% else %}
+    <div class="big err">✕</div>
+    <h2>Scan fehlgeschlagen</h2>
+    {% if filename %}<p class="muted">{{ filename }}</p>{% endif %}
+    {% if detail %}<p class="status status-error">{{ detail }}</p>{% endif %}
+  {% endif %}
+  <div class="row">
+    {% if known %}<a class="btnlink" href="/scan/{{ service }}">Nochmal scannen</a>{% endif %}
+    <a class="btnlink secondary" href="/">Übersicht</a>
+  </div>
+</section>
+{% endblock %}

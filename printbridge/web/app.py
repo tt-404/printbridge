@@ -24,7 +24,9 @@ templates = Jinja2Templates(directory=str(_HERE / "templates"))
 def create_app(config: Config | None = None) -> FastAPI:
     config = config or Config.load()
     core = Core(config)
-    poller = Poller(core, config.autoprint.interval_seconds)
+    # Tick at most every ~15s so a walk-up scan uploads promptly; cloud
+    # auto-print polling shares the same tick.
+    poller = Poller(core, min(config.autoprint.interval_seconds, 15))
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -58,12 +60,20 @@ def create_app(config: Config | None = None) -> FastAPI:
             ctx(activity=core.log.recent(limit=10), linked=linked,
                 autoprint=core.autoprint_enabled(),
                 interval=config.autoprint.interval_seconds,
-                watched=watched),
+                watched=watched,
+                scaninbox=core.scan_inbox_enabled(),
+                scaninbox_dir=config.scan_inbox.dir,
+                scaninbox_service=config.scan_inbox.service),
         )
 
     @app.post("/autoprint/toggle")
     async def autoprint_toggle():
         core.set_autoprint(not core.autoprint_enabled())
+        return RedirectResponse("/", status_code=303)
+
+    @app.post("/scaninbox/toggle")
+    async def scaninbox_toggle():
+        core.set_scan_inbox(not core.scan_inbox_enabled())
         return RedirectResponse("/", status_code=303)
 
     # --- printer / scanner setup -------------------------------------------
@@ -155,6 +165,27 @@ def create_app(config: Config | None = None) -> FastAPI:
         except Exception:
             pass  # error already recorded in the activity log; surfaced in UI
         return RedirectResponse("/", status_code=303)
+
+    @app.get("/scan/{service}")
+    async def quick_scan(request: Request, service: str):
+        """One-tap scan via a plain URL — bookmark it or add it to a phone's
+        home screen. Opening the URL scans and uploads, then shows the result.
+        (GET has a side effect here by design: home-screen shortcuts issue GET.)
+        """
+        if service not in core.providers:
+            return templates.TemplateResponse(request, "scan_result.html", ctx(
+                service=service, label=service, ok=False, known=False,
+                filename=None, detail=f"Unbekannter Dienst: {service}"))
+        try:
+            await run_in_threadpool(core.scan_to_service, service)
+        except Exception:
+            pass  # recorded in the activity log
+        row = next((a for a in core.log.recent(limit=5) if a.kind == "scan"), None)
+        return templates.TemplateResponse(request, "scan_result.html", ctx(
+            service=service, label=core.providers[service].label, known=True,
+            ok=(row.status == "success") if row else False,
+            filename=row.filename if row else None,
+            detail=row.detail if row else None))
 
     # --- print -------------------------------------------------------------
     @app.post("/print")

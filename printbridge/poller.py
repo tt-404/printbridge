@@ -44,4 +44,11 @@ class Poller:
                         log.info("auto-print: printed %d document(s)", count)
             except Exception:  # never let the loop die
                 log.exception("auto-print poll failed")
+            try:
+                if self.core.scan_inbox_enabled():
+                    count = await run_in_threadpool(self.core.poll_scan_inbox)
+                    if count:
+                        log.info("scan-inbox: uploaded %d document(s)", count)
+            except Exception:
+                log.exception("scan-inbox poll failed")
             await asyncio.sleep(self.interval)
